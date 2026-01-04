@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: git-mcp-server
+
+  ai:
+    mcp:
+      server:
+        protocol: SSE
+        sse-endpoint: /sse
+        sse-message-endpoint: /mcp/message
+        keep-alive-interval: 30s
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.ai: DEBUG
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
