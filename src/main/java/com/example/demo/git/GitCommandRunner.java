@@ -42,6 +42,40 @@ public class GitCommandRunner {
         }
     }
 
+    // Allow forcing author info via -c user.name / -c user.email for commit-related commands.
+    public GitExecResult execWithAuthor(String repoPath, String authorName, String authorEmail, String... gitArgs) {
+        List<String> cmd = new ArrayList<>();
+        cmd.add("git");
+        // Inject inline config for author/committer info.
+        cmd.add("-c");
+        cmd.add("user.name=" + authorName);
+        cmd.add("-c");
+        cmd.add("user.email=" + authorEmail);
+        // These environment variables can also be used by git; we keep it simple with -c here.
+        cmd.addAll(List.of(gitArgs));
+
+        ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.directory(new File(repoPath));
+
+        try {
+            Process p = pb.start();
+
+            boolean finished = p.waitFor(DEFAULT_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            if (!finished) {
+                p.destroyForcibly();
+                return GitExecResult.fail(-1, "TIMEOUT");
+            }
+
+            String out = readAll(p.getInputStream());
+            String err = readAll(p.getErrorStream());
+            int code = p.exitValue();
+
+            return GitExecResult.of(code == 0, code, out, err);
+        } catch (Exception e) {
+            return GitExecResult.fail(-2, e.getClass().getSimpleName() + ": " + e.getMessage());
+        }
+    }
+
     private String readAll(InputStream is) throws IOException {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             StringBuilder sb = new StringBuilder();
